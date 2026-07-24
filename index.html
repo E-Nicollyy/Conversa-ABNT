@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" href="./images/stack-of-books.png">
+<title>Assistente Acadêmico</title>
+<style>
+  :root {
+    --papel: #f6f3ec;
+    --papel-card: #fffdf8;
+    --tinta: #241f18;
+    --tinta-suave: #5b5347;
+    --linha: #d8d0bf;
+    --selo: #8a3324;
+    --selo-suave: #f1e3dd;
+    --selo-escuro: #6e2818;
+    --ok: #2f5233;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--papel);
+    color: var(--tinta);
+    font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    line-height: 1.5;
+  }
+
+  header.topo {
+    border-bottom: 2px solid var(--tinta);
+    padding: 24px 32px 16px;
+  }
+
+  header.topo h1 {
+    margin: 0;
+    font-size: 1.9rem;
+    letter-spacing: 0.02em;
+    font-weight: 600;
+  }
+
+  header.topo p {
+    margin: 6px 0 0;
+    color: var(--tinta-suave);
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.92rem;
+  }
+
+  .layout {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 20px 24px 40px;
+  }
+
+  nav.abas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    border-bottom: 1px solid var(--linha);
+    margin-bottom: 18px;
+    position: sticky;
+    top: 0;
+    background: var(--papel);
+    z-index: 5;
+    padding-top: 4px;
+  }
+
+  nav.abas button {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    background: none;
+    border: none;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--tinta-suave);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+
+  nav.abas button.ativa {
+    color: var(--selo);
+    border-bottom-color: var(--selo);
+  }
+
+  section.painel { display: none; }
+  section.painel.ativa { display: flex; flex-direction: column; }
+
+  /* ---------- Painel "dados da capa" (colapsável) ---------- */
+  .dados-capa {
+    border: 1px solid var(--linha);
+    background: var(--papel-card);
+    border-radius: 6px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+
+  .dados-capa summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 10px 14px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--tinta-suave);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+  }
+
+  .dados-capa summary::-webkit-details-marker { display: none; }
+
+  .dados-capa summary::after {
+    content: "▾";
+    font-family: sans-serif;
+    transition: transform 0.15s ease;
+  }
+
+  .dados-capa[open] summary::after { transform: rotate(180deg); }
+
+  .dados-capa .grade-campos {
+    padding: 4px 14px 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 14px;
+    border-top: 1px solid var(--linha);
+  }
+
+  @media (max-width: 640px) {
+    .dados-capa .grade-campos { grid-template-columns: 1fr; }
+  }
+
+  .campo { margin: 10px 0 0; }
+
+  .campo label {
+    display: block;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--tinta-suave);
+    margin-bottom: 3px;
+  }
+
+  .campo input[type="text"] {
+    width: 100%;
+    padding: 7px 9px;
+    font-family: inherit;
+    font-size: 0.92rem;
+    background: #fff;
+    border: 1px solid var(--linha);
+    border-radius: 2px;
+    color: var(--tinta);
+  }
+
+  /* ---------- Janela de conversa ---------- */
+  .chat-janela {
+    border: 1px solid var(--linha);
+    background: var(--papel-card);
+    border-radius: 6px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 420px;
+  }
+
+  .chat-mensagens {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-height: 55vh;
+  }
+
+  .msg { max-width: 82%; display: flex; flex-direction: column; }
+  .msg.usuario { align-self: flex-end; align-items: flex-end; }
+  .msg.assistente { align-self: flex-start; align-items: flex-start; }
+
+  .msg .bolha {
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+
+  .msg.usuario .bolha {
+    background: var(--selo);
+    color: #fdf6f2;
+    border-bottom-right-radius: 3px;
+  }
+
+  .msg.assistente .bolha {
+    background: var(--selo-suave);
+    color: var(--tinta);
+    border: 1px solid var(--linha);
+    border-bottom-left-radius: 3px;
+  }
+
+  .msg .anexo-tag {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.72rem;
+    color: var(--tinta-suave);
+    margin-top: 3px;
+    opacity: 0.8;
+  }
+
+  .msg .baixar {
+    margin-top: 6px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.85rem;
+  }
+
+  .msg .baixar a {
+    color: var(--ok);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid var(--ok);
+  }
+
+  .msg.erro .bolha {
+    background: #fbe4de;
+    border: 1px solid var(--selo);
+    color: var(--selo-escuro);
+  }
+
+  .msg.digitando .bolha {
+    font-style: italic;
+    color: var(--tinta-suave);
+  }
+
+  .chat-vazio {
+    margin: auto;
+    text-align: center;
+    color: var(--tinta-suave);
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.88rem;
+    max-width: 320px;
+  }
+
+  /* ---------- Barra de envio ---------- */
+  .barra-envio {
+    border-top: 1px solid var(--linha);
+    padding: 10px 12px;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .anexo-atual {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.76rem;
+    color: var(--tinta-suave);
+    padding: 0 12px 6px;
+    display: none;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .anexo-atual button {
+    border: none;
+    background: none;
+    color: var(--selo);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: inherit;
+  }
+
+  .btn-icone {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--linha);
+    background: #fff;
+    color: var(--tinta-suave);
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-icone:hover { border-color: var(--selo); color: var(--selo); }
+
+  textarea.entrada-texto {
+    flex: 1;
+    resize: none;
+    max-height: 120px;
+    padding: 9px 12px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    border: 1px solid var(--linha);
+    border-radius: 18px;
+    background: #fff;
+    color: var(--tinta);
+  }
+
+  .btn-enviar {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: var(--selo);
+    color: #fff;
+    font-size: 1.05rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-enviar:disabled { background: #b9ab9d; cursor: progress; }
+
+  input[type="file"] { display: none; }
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <h1>Assistente Acadêmico</h1>
+  <p>Geração e correção de trabalhos acadêmicos com formatação ABNT — converse por aba: TCC, artigo, relatório, trabalho e correção.</p>
+</header>
+
+<div class="layout">
+
+  <nav class="abas" id="abas"></nav>
+
+  <div id="paineis"></div>
+
+</div>
+
+<script>
+  const TIPOS_ACADEMICOS = ["TCC", "Artigo Científico", "Relatório de Estágio", "Trabalho Acadêmico"];
+
+  const abasEl = document.getElementById("abas");
+  const paineisEl = document.getElementById("paineis");
+
+  // ---------- helpers de renderização do chat ----------
+
+  function criarMensagemUsuario(texto, nomeArquivo) {
+    const msg = document.createElement("div");
+    msg.className = "msg usuario";
+    const bolha = document.createElement("div");
+    bolha.className = "bolha";
+    bolha.textContent = texto || "(sem texto, apenas arquivo anexado)";
+    msg.appendChild(bolha);
+    if (nomeArquivo) {
+      const tag = document.createElement("div");
+      tag.className = "anexo-tag";
+      tag.textContent = `📎 ${nomeArquivo}`;
+      msg.appendChild(tag);
+    }
+    return msg;
+  }
+
+  function criarMensagemDigitando() {
+    const msg = document.createElement("div");
+    msg.className = "msg assistente digitando";
+    msg.innerHTML = `<div class="bolha">Escrevendo...</div>`;
+    return msg;
+  }
+
+  function criarMensagemAssistente(texto, downloadUrl, nomeArquivo) {
+    const msg = document.createElement("div");
+    msg.className = "msg assistente";
+    const bolha = document.createElement("div");
+    bolha.className = "bolha";
+    bolha.textContent = texto || "(sem texto adicional)";
+    msg.appendChild(bolha);
+    if (downloadUrl) {
+      const baixar = document.createElement("div");
+      baixar.className = "baixar";
+      baixar.innerHTML = `📄 <a href="${downloadUrl}" target="_blank" rel="noopener">Baixar ${nomeArquivo}</a>`;
+      msg.appendChild(baixar);
+    }
+    return msg;
+  }
+
+  function criarMensagemErro(texto) {
+    const msg = document.createElement("div");
+    msg.className = "msg assistente erro";
+    msg.innerHTML = `<div class="bolha">${texto}</div>`;
+    return msg;
+  }
+
+  // ---------- painel de um tipo de documento acadêmico ----------
+
+  function criarFormularioAcademico(tipo) {
+    const slug = tipo.replace(/\s+/g, "-").toLowerCase();
+    const painel = document.createElement("section");
+    painel.className = "painel";
+    painel.dataset.slug = slug;
+
+    painel.innerHTML = `
+      <details class="dados-capa">
+        <summary>Dados para capa e folha de rosto (ABNT)</summary>
+        <div class="grade-campos">
+          <div class="campo"><label>Seu nome completo</label><input type="text" data-campo="nomeAluno" /></div>
+          <div class="campo"><label>Instituição</label><input type="text" data-campo="instituicao" /></div>
+          <div class="campo"><label>Curso / Disciplina</label><input type="text" data-campo="curso" /></div>
+          <div class="campo"><label>Orientador(a) (opcional)</label><input type="text" data-campo="orientador" /></div>
+          <div class="campo"><label>Cidade</label><input type="text" data-campo="cidade" /></div>
+        </div>
+      </details>
+
+      <div class="chat-janela">
+        <div class="chat-mensagens" data-el="mensagens">
+          <div class="chat-vazio" data-el="vazio">Preencha os dados da capa acima e descreva aqui o tema, as orientações ou anexe um material de apoio para gerar seu ${tipo}.</div>
+        </div>
+        <div class="anexo-atual" data-el="anexo-atual">
+          <span data-el="anexo-nome"></span>
+          <button type="button" data-acao="remover-anexo">remover</button>
+        </div>
+        <div class="barra-envio">
+          <button class="btn-icone" type="button" data-acao="anexar" title="Anexar arquivo (.txt, .docx, .pdf)">📎</button>
+          <input type="file" data-campo="arquivo" accept=".txt,.docx,.pdf" />
+          <textarea class="entrada-texto" rows="1" data-campo="prompt" placeholder="Descreva o tema ou as orientações do ${tipo}..."></textarea>
+          <button class="btn-enviar" type="button" data-acao="gerar" title="Enviar">➤</button>
+        </div>
+      </div>
+    `;
+
+    const mensagensEl = painel.querySelector('[data-el="mensagens"]');
+    const vazioEl = painel.querySelector('[data-el="vazio"]');
+    const anexoAtualEl = painel.querySelector('[data-el="anexo-atual"]');
+    const anexoNomeEl = painel.querySelector('[data-el="anexo-nome"]');
+    const arquivoInput = painel.querySelector('[data-campo="arquivo"]');
+    const textoInput = painel.querySelector('[data-campo="prompt"]');
+    const botaoAnexar = painel.querySelector('[data-acao="anexar"]');
+    const botaoRemoverAnexo = painel.querySelector('[data-acao="remover-anexo"]');
+    const botaoEnviar = painel.querySelector('[data-acao="gerar"]');
+
+    botaoAnexar.addEventListener("click", () => arquivoInput.click());
+
+    arquivoInput.addEventListener("change", () => {
+      if (arquivoInput.files[0]) {
+        anexoNomeEl.textContent = `📎 ${arquivoInput.files[0].name}`;
+        anexoAtualEl.style.display = "flex";
+      } else {
+        anexoAtualEl.style.display = "none";
+      }
+    });
+
+    botaoRemoverAnexo.addEventListener("click", () => {
+      arquivoInput.value = "";
+      anexoAtualEl.style.display = "none";
+    });
+
+    async function enviar() {
+      const campo = (nome) => painel.querySelector(`[data-campo="${nome}"]`).value;
+      const textoPrompt = textoInput.value.trim();
+      const arquivo = arquivoInput.files[0];
+
+      if (!textoPrompt && !arquivo) return;
+      if (!campo("nomeAluno").trim() || !campo("instituicao").trim()) {
+        painel.querySelector(".dados-capa").open = true;
+        mensagensEl.appendChild(criarMensagemErro("Preencha o Nome e a Instituição na seção acima para montar a capa ABNT."));
+        mensagensEl.scrollTop = mensagensEl.scrollHeight;
+        return;
+      }
+
+      if (vazioEl) vazioEl.remove();
+      mensagensEl.appendChild(criarMensagemUsuario(textoPrompt, arquivo ? arquivo.name : null));
+      const msgDigitando = criarMensagemDigitando();
+      mensagensEl.appendChild(msgDigitando);
+      mensagensEl.scrollTop = mensagensEl.scrollHeight;
+
+      textoInput.value = "";
+      textoInput.style.height = "auto";
+      botaoEnviar.disabled = true;
+
+      try {
+        const formData = new FormData();
+        formData.append("tipoDoc", tipo);
+        formData.append("prompt", textoPrompt);
+        formData.append("nomeAluno", campo("nomeAluno"));
+        formData.append("instituicao", campo("instituicao"));
+        formData.append("curso", campo("curso"));
+        formData.append("orientador", campo("orientador"));
+        formData.append("cidade", campo("cidade"));
+        if (arquivo) formData.append("arquivo", arquivo);
+
+        const resp = await fetch("/api/academico", { method: "POST", body: formData });
+        const dados = await resp.json();
+
+        msgDigitando.remove();
+
+        if (!resp.ok) {
+          mensagensEl.appendChild(criarMensagemErro(dados.erro || "Ocorreu um erro."));
+        } else {
+          mensagensEl.appendChild(criarMensagemAssistente(dados.resposta, dados.downloadUrl, dados.nomeArquivo));
+        }
+      } catch (e) {
+        msgDigitando.remove();
+        mensagensEl.appendChild(criarMensagemErro("Falha na requisição: " + e.message));
+      } finally {
+        arquivoInput.value = "";
+        anexoAtualEl.style.display = "none";
+        botaoEnviar.disabled = false;
+        mensagensEl.scrollTop = mensagensEl.scrollHeight;
+      }
+    }
+
+    botaoEnviar.addEventListener("click", enviar);
+    textoInput.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" && !ev.shiftKey) {
+        ev.preventDefault();
+        enviar();
+      }
+    });
+    textoInput.addEventListener("input", () => {
+      textoInput.style.height = "auto";
+      textoInput.style.height = Math.min(textoInput.scrollHeight, 120) + "px";
+    });
+
+    return painel;
+  }
+
+  // ---------- painel de correção ----------
+
+  function criarPainelCorrecao() {
+    const painel = document.createElement("section");
+    painel.className = "painel";
+    painel.dataset.slug = "correção";
+
+    painel.innerHTML = `
+      <div class="chat-janela">
+        <div class="chat-mensagens" data-el="mensagens">
+          <div class="chat-vazio" data-el="vazio">Envie um texto ou anexe um arquivo (trabalho ou lista de exercícios). A IA identifica o tipo de conteúdo e aplica as correções automaticamente.</div>
+        </div>
+        <div class="anexo-atual" data-el="anexo-atual">
+          <span data-el="anexo-nome"></span>
+          <button type="button" data-acao="remover-anexo">remover</button>
+        </div>
+        <div class="barra-envio">
+          <button class="btn-icone" type="button" data-acao="anexar" title="Anexar arquivo (.txt, .docx, .pdf)">📎</button>
+          <input type="file" data-campo="arquivo" accept=".txt,.docx,.pdf" />
+          <textarea class="entrada-texto" rows="1" data-campo="prompt" placeholder="Cole o texto ou descreva o que deseja corrigir..."></textarea>
+          <button class="btn-enviar" type="button" data-acao="corrigir" title="Enviar">➤</button>
+        </div>
+      </div>
+    `;
+
+    const mensagensEl = painel.querySelector('[data-el="mensagens"]');
+    const vazioEl = painel.querySelector('[data-el="vazio"]');
+    const anexoAtualEl = painel.querySelector('[data-el="anexo-atual"]');
+    const anexoNomeEl = painel.querySelector('[data-el="anexo-nome"]');
+    const arquivoInput = painel.querySelector('[data-campo="arquivo"]');
+    const textoInput = painel.querySelector('[data-campo="prompt"]');
+    const botaoAnexar = painel.querySelector('[data-acao="anexar"]');
+    const botaoRemoverAnexo = painel.querySelector('[data-acao="remover-anexo"]');
+    const botaoEnviar = painel.querySelector('[data-acao="corrigir"]');
+
+    botaoAnexar.addEventListener("click", () => arquivoInput.click());
+
+    arquivoInput.addEventListener("change", () => {
+      if (arquivoInput.files[0]) {
+        anexoNomeEl.textContent = `📎 ${arquivoInput.files[0].name}`;
+        anexoAtualEl.style.display = "flex";
+      } else {
+        anexoAtualEl.style.display = "none";
+      }
+    });
+
+    botaoRemoverAnexo.addEventListener("click", () => {
+      arquivoInput.value = "";
+      anexoAtualEl.style.display = "none";
+    });
+
+    async function enviar() {
+      const textoPrompt = textoInput.value.trim();
+      const arquivo = arquivoInput.files[0];
+
+      if (!textoPrompt && !arquivo) return;
+
+      if (vazioEl) vazioEl.remove();
+      mensagensEl.appendChild(criarMensagemUsuario(textoPrompt, arquivo ? arquivo.name : null));
+      const msgDigitando = criarMensagemDigitando();
+      mensagensEl.appendChild(msgDigitando);
+      mensagensEl.scrollTop = mensagensEl.scrollHeight;
+
+      textoInput.value = "";
+      textoInput.style.height = "auto";
+      botaoEnviar.disabled = true;
+
+      try {
+        const formData = new FormData();
+        formData.append("prompt", textoPrompt);
+        if (arquivo) formData.append("arquivo", arquivo);
+
+        const resp = await fetch("/api/correcao", { method: "POST", body: formData });
+        const dados = await resp.json();
+
+        msgDigitando.remove();
+
+        if (!resp.ok) {
+          mensagensEl.appendChild(criarMensagemErro(dados.erro || "Ocorreu um erro."));
+        } else {
+          mensagensEl.appendChild(criarMensagemAssistente(dados.resposta, dados.downloadUrl, dados.nomeArquivo));
+        }
+      } catch (e) {
+        msgDigitando.remove();
+        mensagensEl.appendChild(criarMensagemErro("Falha na requisição: " + e.message));
+      } finally {
+        arquivoInput.value = "";
+        anexoAtualEl.style.display = "none";
+        botaoEnviar.disabled = false;
+        mensagensEl.scrollTop = mensagensEl.scrollHeight;
+      }
+    }
+
+    botaoEnviar.addEventListener("click", enviar);
+    textoInput.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" && !ev.shiftKey) {
+        ev.preventDefault();
+        enviar();
+      }
+    });
+    textoInput.addEventListener("input", () => {
+      textoInput.style.height = "auto";
+      textoInput.style.height = Math.min(textoInput.scrollHeight, 120) + "px";
+    });
+
+    return painel;
+  }
+
+  // ---------- montagem das abas ----------
+
+  function montarAbas() {
+    const todasAsAbas = [...TIPOS_ACADEMICOS, "Correção"];
+
+    todasAsAbas.forEach((nome, indice) => {
+      const slug = nome.replace(/\s+/g, "-").toLowerCase();
+
+      const btn = document.createElement("button");
+      btn.textContent = nome;
+      btn.dataset.slug = slug;
+      if (indice === 0) btn.classList.add("ativa");
+      btn.addEventListener("click", () => ativarAba(slug));
+      abasEl.appendChild(btn);
+
+      const painel = nome === "Correção" ? criarPainelCorrecao() : criarFormularioAcademico(nome);
+      if (indice === 0) painel.classList.add("ativa");
+      paineisEl.appendChild(painel);
+    });
+  }
+
+  function ativarAba(slug) {
+    document.querySelectorAll("nav.abas button").forEach((b) => b.classList.toggle("ativa", b.dataset.slug === slug));
+    document.querySelectorAll("section.painel").forEach((p) => p.classList.toggle("ativa", p.dataset.slug === slug));
+  }
+
+  montarAbas();
+</script>
+
+</body>
+</html>
